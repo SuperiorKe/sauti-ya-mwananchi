@@ -1,0 +1,39 @@
+### IEBC 7-Step Voting Guide
+
+1. Entry and Identification
+- Enter the polling station and present your original National ID card or a valid Kenyan Passport (the document you used during registration).
+- Polling stations typically open at 6:00 AM and close at 5:00 PM.
+
+2. Verification (KIEMS Kit)
+- A polling clerk will use the KIEMS (Kenya Integrated Election Management System) kit to verify your details biometrically (fingerprints).
+- If biometrics fail, the clerk will use the alphanumeric search (ID number) as a secondary verification.
+
+3. Issuance of Ballot Papers
+- Once verified, you will be issued six (6) stamped ballot papers, each color-coded for a specific elective position:
+    - White: President
+    - Blue: Governor
+    - Yellow: Senator
+    - Pink: Member of National Assembly (MP)
+    - Green: County Woman Representative
+    - Beige: Member of County Assembly (MCA)
+
+4. Marking the Ballot
+- Proceed to a private voting booth.
+- Mark your preferred candidate with a tick (✓) or a cross (✗).
+- Important: Use only one symbol per paper and stay inside the box. Marking outside or using multiple symbols may spoil your vote.
+
+5. Casting the Vote
+- Fold your ballot papers and drop them into the corresponding color-coded ballot boxes.
+- Ensure the color of the ballot paper matches the color of the box lid to avoid your vote being declared "stray" or spoilt.
+
+6. Indelible Ink
+- A clerk will mark your small finger with indelible ink to show that you have already voted.
+
+7. Exit
+- Leave the polling station immediately after voting to allow others to cast their ballots.
+
+### Quick Eligibility Checklist
+- Age: Must be 18 years or older.
+- Registration: Must be a registered voter in the specific polling station.
+- Documents: Must have an original ID or Passport (photocopies are not accepted).
+- Status: You can check your registration status by texting your ID/Passport Number to the official IEBC SMS code (usually 70000) or visiting the IEBC online portal.
