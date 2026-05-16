@@ -9,7 +9,7 @@ import re
 # Set these BEFORE other Google imports so the client picks them up at init time.
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "true")
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", "gdgagentathon-kenn")
-os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "us-central1")
+os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "europe-west1")
 
 import logging
 import asyncio
