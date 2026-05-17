@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Use Vertex AI + workload identity on Cloud Run (not AI Studio API key).
 ENV GOOGLE_GENAI_USE_VERTEXAI=true
-ENV GOOGLE_CLOUD_LOCATION=us-central1
+ENV GOOGLE_CLOUD_LOCATION=europe-west1
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
