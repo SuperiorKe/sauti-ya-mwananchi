@@ -9,14 +9,13 @@ import re
 # Set these BEFORE other Google imports so the client picks them up at init time.
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "true")
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", "gdgagentathon-kenn")
-os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "europe-west1")
+os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 import logging
-import asyncio
-from typing import Optional
-from fastapi import FastAPI, Request, HTTPException
+import uuid
+from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import uvicorn
 import vertexai
 from google import adk
@@ -105,10 +104,10 @@ For any civic question not answered by the above documents, respond "Unverified"
 Respond in the language the user writes in. Keep responses concise. Always include at least one [Source: ...] citation when making a civic claim.
 """
 
-# Agent setup -- single ADK agent, Gemini 2.0 Flash via Vertex AI
+# Agent setup -- single ADK agent, gemini-2.0-flash-001 via Vertex AI
 agent = adk.Agent(
     name="sauti_ya_mwananchi",
-    model="gemini-2.0-flash",
+    model="gemini-2.0-flash-001",
     instruction=SYSTEM_PROMPT
 )
 
@@ -125,7 +124,10 @@ runner = Runner(
 
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(max_length=2000)
+    # Client-generated session token for multi-turn continuity within one browser tab.
+    # Falls back to a fresh UUID per request if the client doesn't send one.
+    session_id: str = Field(default_factory=lambda: str(uuid.uuid4()), max_length=64)
 
 
 # Output validator: if a response touches civic topics it must include a citation.
@@ -289,6 +291,10 @@ async def get_ui():
             const input = document.getElementById('msg');
             const sendBtn = document.getElementById('send');
 
+            // One session token per page load — maintains multi-turn context for
+            // this tab without leaking history across different users or tabs.
+            const SESSION_ID = crypto.randomUUID();
+
             async function sendMessage() {
                 const text = input.value.trim();
                 if (!text) return;
@@ -302,11 +308,16 @@ async def get_ui():
                     const res = await fetch('/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: text })
+                        body: JSON.stringify({ message: text, session_id: SESSION_ID })
                     });
+                    if (!res.ok) {
+                        typingEl.remove();
+                        append('Server error (' + res.status + '). Please try again.', 'agent-msg');
+                        return;
+                    }
                     const data = await res.json();
                     typingEl.remove();
-                    append(data.response, 'agent-msg');
+                    append(data.response || 'Empty response. Please try again.', 'agent-msg');
                 } catch (e) {
                     typingEl.remove();
                     append('Connection error. Please try again.', 'agent-msg');
@@ -350,8 +361,8 @@ async def get_ui():
 @app.post("/chat")
 async def chat(request: ChatRequest):
     try:
-        session_id = "hackathon_session"
-        user_id = "hackathon_user"
+        session_id = request.session_id
+        user_id = "anon"
 
         new_content = runner_types.Content(
             parts=[runner_types.Part(text=request.message)]
@@ -383,8 +394,8 @@ async def chat(request: ChatRequest):
             )
         elif "api key" in err and ("expired" in err or "invalid" in err):
             hint = (
-                " Msaidizi: AI Studio API key issue. main.py forces Vertex (GOOGLE_GENAI_USE_VERTEXAI=true); "
-                "unset GOOGLE_API_KEY or renew it, and run: gcloud auth application-default login"
+                " Msaidizi: AI Studio API key detected. Remove GOOGLE_API_KEY from the environment "
+                "so traffic routes through Vertex AI + ADC instead."
             )
         else:
             hint = ""
@@ -393,10 +404,17 @@ async def chat(request: ChatRequest):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "corpus": {
-        "constitution_chars": len(_CONSTITUTION),
-        "iebc_guide_chars": len(_IEBC_GUIDE)
-    }}
+    corpus_ok = (
+        "not found" not in _CONSTITUTION.lower()
+        and "not found" not in _IEBC_GUIDE.lower()
+    )
+    return {
+        "status": "ok" if corpus_ok else "degraded",
+        "corpus": {
+            "constitution_chars": len(_CONSTITUTION),
+            "iebc_guide_chars": len(_IEBC_GUIDE),
+        },
+    }
 
 
 if __name__ == "__main__":

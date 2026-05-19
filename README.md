@@ -1,82 +1,169 @@
-# 🇰🇪 Sauti ya Mwananchi (Voice of the Citizen)
+# Sauti ya Mwananchi — Voice of the Citizen
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/release/python-3110/)
-[![Powered by Gemini](https://img.shields.io/badge/Powered%20by-Gemini%202.0%20Flash-orange.svg)](https://deepmind.google/technologies/gemini/)
+> A civic accountability AI agent for Kenyan voters, built at the **GDG Nairobi Agentathon 2026**.
 
-**Sauti ya Mwananchi** is a civic participation agent designed to empower Kenyan voters with accurate, grounded, and non-partisan information. Built using **Google ADK** and **Gemini 2.0 Flash**, it serves as a digital companion for navigating the Constitution of Kenya 2010 and official IEBC procedures.
+**Live demo:** [https://sauti-ya-mwananchi-mu44pr45ha-uc.a.run.app](https://sauti-ya-mwananchi-mu44pr45ha-uc.a.run.app)
 
-## 🌟 Key Features
+---
 
-- **Grounded Intelligence**: Powered by Gemini 2.0 Flash with a 1M token context window, allowing the entire Constitution of Kenya to be used as a primary source without the need for a vector database.
-- **Multilingual Support**: Communicates fluently in English, Swahili, and Sheng, maintaining strict behavioral constraints across all languages.
-- **Cite-or-Refuse Architecture**: Every civic claim is validated by an automated safety layer. If a response touches on civic topics without a verifiable citation, it is intercepted and replaced with a safe fallback.
-- **Strict Political Neutrality**: Programmatically barred from endorsing candidates or political positions, citing Article 38 of the Constitution to protect voter freedom.
-- **Production-Ready**: Containerized with Docker and ready for deployment to Google Cloud Run.
+## What It Does
 
-## 🏗️ Architecture
+Sauti ya Mwananchi answers civic questions from Kenyan voters — in English, Swahili, or Sheng — with responses grounded in two primary legal sources:
 
-The application is built with a "Security-First" mindset for the hackathon environment:
+- **Constitution of Kenya 2010** (full text, ~360 KB)
+- **IEBC Official Voter Guide** (polling procedures, registration requirements)
 
-1.  **FastAPI Backend**: Provides a lightweight API for the chat interface and health monitoring.
-2.  **Google ADK Agent**: Orchestrates interactions with Gemini 2.0 Flash via Vertex AI.
-3.  **Long-Context Injection**: Injects the full text of `constitution.txt` and `iebc-guide.txt` into the system prompt at runtime.
-4.  **Output Validation Middleware**: A regex-based validator that checks for citation patterns (`[Source: ...]`) in responses containing civic keywords.
+Every civic claim the agent makes is required to carry an inline citation (`[Source: Constitution Article N]`, `[Source: IEBC Voter Handbook]`, etc.). If the agent cannot cite a claim from those documents, it responds `"Unverified"` and directs the user to IEBC's official hotline or website. This cite-or-refuse rule is enforced by a Python middleware layer that intercepts every response before it reaches the user — the model's output never bypasses it.
 
-## 🚀 Getting Started
+### Agent Modes
+
+The agent operates across five behavioral personas, switching based on context:
+
+| Mode | Swahili Name | Role |
+|------|-------------|------|
+| Assistant | **Msaidizi** | Multilingual front-end, routes to the right mode |
+| Teacher | **Mwalimu** | Civic education with primary-source citations |
+| Guide | **Kiongozi** | Polling station and procedural step-by-step guidance |
+| Truth-checker | **Ukweli** | Fact-checking; `"Unverified"` is an acceptable answer |
+| Companion | **Mwenza** | Election-day support and real-time guidance |
+
+### Hard Constraints (Cannot Be Overridden)
+
+These rules are enforced at both the prompt level and the output validator, and hold across all languages and phrasings:
+
+1. **Political neutrality** — no candidate or party endorsements; cites Article 38 on free political choice when asked who to vote for.
+2. **Citations required** — every civic claim must include an inline source reference.
+3. **No persona impersonation** — refuses to roleplay as the IEBC chairperson, candidates, or any official.
+4. **No PII collection** — will not ask for or repeat voter ID numbers, full names, or addresses.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Language | Python 3.11 |
+| Web framework | FastAPI + Uvicorn |
+| AI framework | Google ADK (`google-adk`) |
+| LLM | Gemini 2.0 Flash via Vertex AI |
+| Grounding strategy | Long-context injection — full corpus embedded in the 1M-token system prompt (no vector DB needed) |
+| Output safety | Custom `validate_response` middleware (Python regex, enforces cite-or-refuse) |
+| UI | Inline HTML/CSS/JS chat interface served at `/` |
+| Container | Docker (python:3.11-slim) |
+| Deployment | Google Cloud Run (us-central1) |
+| E2E tests | Playwright (TypeScript) |
+
+---
+
+## Running Locally
 
 ### Prerequisites
 
-- **Google Cloud Project** with Vertex AI API enabled.
-- **Application Default Credentials (ADC)** configured: `gcloud auth application-default login`.
-- **Python 3.11+**.
+- Python 3.11+
+- A Google Cloud project with the **Vertex AI API** enabled
+- [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) (`gcloud` CLI)
+- Node.js 18+ (only needed for E2E tests)
 
-### Local Installation
+### 1. Set up a virtual environment
 
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/your-username/sauti-ya-mwananchi.git
-    cd sauti-ya-mwananchi
-    ```
+```bash
+python -m venv .venv
+source .venv/bin/activate      # Linux/macOS
+.\.venv\Scripts\activate       # Windows PowerShell
+```
 
-2.  **Set up a virtual environment**:
-    ```bash
-    python -m venv .venv
-    source .venv/bin/activate  # On Windows: .\.venv\Scripts\activate
-    ```
+### 2. Install Python dependencies
 
-3.  **Install dependencies**:
-    ```bash
-    pip install -r requirements.txt
-    ```
+```bash
+pip install -r requirements.txt
+```
 
-4.  **Run the application**:
-    ```bash
-    uvicorn main:app --host 0.0.0.0 --port 8080
-    ```
-    Access the UI at `http://localhost:8080`.
+### 3. Authenticate with Vertex AI
 
-## ☁️ Deployment
+```bash
+gcloud auth application-default login
+```
 
-Deploy to **Google Cloud Run** in seconds:
+The app uses Application Default Credentials (ADC) — no API keys or `.env` files are required.
+
+If your Google Cloud project ID differs from `gdgagentathon-kenn`, set it:
+
+```bash
+export GOOGLE_CLOUD_PROJECT=your-project-id   # Linux/macOS
+$env:GOOGLE_CLOUD_PROJECT="your-project-id"   # PowerShell
+```
+
+### 4. Start the server
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8080
+```
+
+Open [http://localhost:8080](http://localhost:8080) in a browser. The chat UI loads immediately.
+
+The `/health` endpoint returns corpus statistics (loaded character counts for both source files):
+
+```bash
+curl http://localhost:8080/health
+```
+
+### 5. Run E2E tests (optional)
+
+```bash
+npm install
+npx playwright install chromium
+npx playwright test
+```
+
+The Playwright config auto-starts a FastAPI server on port 8090 for test isolation. Tests verify the page loads, the health endpoint reports corpus sizes above 100 KB, and civic responses include citations.
+
+---
+
+## Deploying to Cloud Run
+
+The project ships with a `Dockerfile`. A single `gcloud` command builds the image, pushes it, and deploys:
 
 ```bash
 gcloud run deploy sauti-ya-mwananchi \
-    --source . \
-    --region us-central1 \
-    --allow-unauthenticated
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated
 ```
 
-## 🛡️ Safety & Ethics
+Cloud Run uses workload identity — no service account keys or secrets are required. The `Dockerfile` sets `GOOGLE_GENAI_USE_VERTEXAI=true` and `GOOGLE_CLOUD_LOCATION=us-central1` so the container routes LLM traffic through Vertex AI automatically.
 
-- **Non-Partisanship**: The agent will refuse to answer "Who should I vote for?" and instead provide information on how to evaluate candidates based on Chapter 6 (Leadership and Integrity).
-- **No PII**: The agent is instructed never to ask for or store Personal Identifiable Information (ID numbers, phone numbers, etc.).
-- **Fact-Checking**: If information cannot be found in the provided sources, the agent responds as "Unverified" and redirects to official IEBC channels.
+---
 
-## 📄 License
+## Project Structure
 
-Distributed under the MIT License. See `LICENSE` for more information.
+```
+sauti-ya-mwananchi/
+├── main.py              # FastAPI app, ADK agent, output validator, inline UI
+├── constitution.txt     # Constitution of Kenya 2010 (full text, ~360 KB)
+├── iebc-guide.txt       # IEBC Official Voter Guide
+├── requirements.txt     # Python runtime dependencies
+├── Dockerfile           # Container build for Cloud Run
+├── convert_pdf.py       # One-time utility: rebuilds constitution.txt from PDF
+├── playwright.config.ts # E2E test configuration
+├── package.json         # Node.js dev dependencies (Playwright only)
+├── e2e/
+│   └── sauti-ui.spec.ts # Smoke tests: page load, health check, citation validation
+└── GEMINI.md            # Internal architecture and development conventions
+```
 
-## ✍️ Author
+---
 
-**Kenn** - *GDG Agentathon Nairobi*
+## Architecture Note
+
+The agent avoids a vector database entirely. Gemini 2.0 Flash has a **1-million-token context window**; the full Constitution of Kenya is approximately 90,000 tokens — well within that budget. Both source documents are read from disk at startup and injected directly into the system prompt. This means:
+
+- Every response is grounded against the complete, untruncated legal text.
+- No chunking, embedding, or retrieval infrastructure to maintain.
+- Latency comes from the LLM call only, not a retrieval round-trip.
+
+---
+
+## Built At
+
+**GDG Nairobi Agentathon — May 2026**
+Google Developer Group · Nairobi, Kenya

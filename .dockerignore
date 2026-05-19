@@ -1,0 +1,28 @@
+# Node / E2E testing — not needed at runtime
+node_modules/
+e2e/
+playwright.config.ts
+package.json
+package-lock.json
+test-results/
+playwright-report/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+
+# Dev tooling and docs
+convert_pdf.py
+GEMINI.md
+README.md
+*.pdf
+
+# Version control and editor state
+.git/
+.gitignore
+.env
+.env.*
